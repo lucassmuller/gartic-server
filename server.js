@@ -1,28 +1,38 @@
-var app = require('express')();
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
+const app     = require('express')();
+const server  = require('http').Server(app);
+const io      = require('socket.io')(server);
+
+const Sala    = require('./sala');
+const Usuario = require('./usuario');
 
 server.listen(8080, () => console.log('server started'));
 
-let draw, userDrawing;
+const sala = new Sala(1, 'Sem tempo irmão');
+
 io.on('connection', (socket) => {
   console.log(socket.id, 'connected!')
 
-  if(!userDrawing) 
-    userDrawing = socket.id;
+  const usuario = new Usuario(socket.id, 'Luis');
 
-  const getDraw = () => ({ draw, canDraw: socket.id === userDrawing });
+  sala.conectarUsuario(usuario);
+
+  const getDraw = () => ({
+    draw: sala.desenho,
+    canDraw: usuario.id === sala.usuarioAtual.id
+  });
+
   socket.emit('draw', getDraw());
 
   socket.on('draw', ({ drawUpdate }) => {
-    // if(socket.id === userDrawing) {
-      draw = drawUpdate;
-      socket.broadcast.emit('draw', getDraw());
-    // }
+    sala.setDesenho(drawUpdate, usuario);
+
+    // sala.usuarios.forEach(u => {
+    //     if(u.id != sala.usuarioAtual.id)
+    //       //TODO
+    // });
+
+    socket.broadcast.emit('draw', getDraw());
   });
 
-  socket.on('disconnect', () => { 
-    if(socket.id === userDrawing)
-      userDrawing = null;
-  });
+  socket.on('disconnect', () => sala.desconectarUsuario(usuario));
 });
