@@ -10,29 +10,46 @@ server.listen(8080, () => console.log('server started'));
 const sala = new Sala(1, 'Sem tempo irmão');
 
 io.on('connection', (socket) => {
-  console.log(socket.id, 'connected!')
+  /** @type {Usuario} */
+  let usuario;
 
-  const usuario = new Usuario(socket.id, 'Luis');
+  socket.on('user:join', ({ name }) => {
+    usuario = new Usuario(socket.id, name);
+    
+    if (!sala.conectarUsuario(usuario))
+      return;
+    
+    console.log(usuario.nome, 'connected!');
+    socket.emit('user:connected', usuario);
 
-  sala.conectarUsuario(usuario);
+    const getDraw = () => ({
+      draw: sala.desenho,
+      canDraw: sala.usuarioAtual
+    });
 
-  const getDraw = () => ({
-    draw: sala.desenho,
-    canDraw: usuario.id === sala.usuarioAtual.id
+    if (sala.usuarioAtual.id === usuario.id) {
+      socket.emit('draw:word', {palavra: sala.palavra});
+    }
+  
+    socket.emit('draw', getDraw());
+    socket.on('draw', ({ drawUpdate }) => {
+      sala.setDesenho(drawUpdate, usuario);
+  
+      socket.broadcast.emit('draw', getDraw());
+    });
+
+    socket.on('draw:opinion', ({ opinion }) => {
+      if (sala.checkPalavra(opinion, usuario))
+        socket.emit('user:update', {usuario});
+    });
+  
+    socket.on('disconnect', () => {
+      console.log(usuario.nome, 'disconnected!');
+
+      sala.desconectarUsuario(usuario, (newUsuarioAtual) => {
+        socket.broadcast.emit('draw', getDraw());
+        socket.broadcast.to(sala.usuarioAtual.id).emit('draw:word', {palavra: sala.palavra});
+      });
+    });
   });
-
-  socket.emit('draw', getDraw());
-
-  socket.on('draw', ({ drawUpdate }) => {
-    sala.setDesenho(drawUpdate, usuario);
-
-    // sala.usuarios.forEach(u => {
-    //     if(u.id != sala.usuarioAtual.id)
-    //       //TODO
-    // });
-
-    socket.broadcast.emit('draw', getDraw());
-  });
-
-  socket.on('disconnect', () => sala.desconectarUsuario(usuario));
 });
