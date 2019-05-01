@@ -21,7 +21,7 @@ io.on('connection', (socket) => {
     
     console.log(usuario.nome, 'connected!');
     socket.emit('user:connected', usuario);
-    socket.emit('room:users', sala.usuarios);
+    io.sockets.emit('room:users', sala.usuarios);
 
     const getDraw = () => ({
       draw: sala.desenho,
@@ -41,6 +41,21 @@ io.on('connection', (socket) => {
 
     socket.on('draw:opinion', ({ opinion }) => {
       if (sala.checkPalavra(opinion, usuario)) {
+        if (sala.usuarios.length - 1 === sala.usuariosQueAcertaram.length) {
+          socket.to(sala.usuarioAtual.id).emit('draw:word', {palavra: null});
+
+          if (sala.newRound()) {
+            io.sockets.emit('draw', getDraw());
+
+            if (usuario.id === sala.usuarioAtual.id)
+              socket.emit('draw:word', {palavra: sala.palavra});
+            else
+              socket.broadcast.to(sala.usuarioAtual.id).emit('draw:word', {palavra: sala.palavra});
+          } else {
+            io.sockets.emit('room:end', sala.usuarios);
+          }
+        }
+
         socket.emit('room:users', sala.usuarios);
         socket.broadcast.emit('room:users', sala.usuarios);
       }

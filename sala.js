@@ -1,4 +1,5 @@
-const Usuario = require('./usuario');
+const Usuario        = require('./usuario');
+const sortearPalavra = require('./palavra');
 
 class Sala {
 
@@ -23,7 +24,10 @@ class Sala {
     this.usuarioAtual = null;
 
     /** @type {string} */
-    this.palavra = 'casa';
+    this.palavra = sortearPalavra();
+
+    /** @type {number} */
+    this.rodadas = 1;
   }
 
   /**
@@ -31,7 +35,7 @@ class Sala {
    */
   conectarUsuario(usuario) {
     // limite de 8 usuários
-    if (this.usuarios.length === 8)
+    if (this.usuarios.length === 8 && this.rodadas === this.usuarios.length)
       return false;
     
     if (this.usuarios.length === 0)
@@ -49,15 +53,9 @@ class Sala {
     this.usuarios = this.usuarios.filter(u => u.id !== usuario.id);
 
     if (this.usuarioAtual.id === usuario.id) {
-      this.resetarSala();
+      this.newRound();
       this.usuarioAtual && onUsuarioAtualChange(this.usuarioAtual);
     }
-  }
-
-  resetarSala() {
-    this.desenho = null;
-    this.usuarioAtual = this.usuarios[0];
-    this.usuariosQueAcertaram = [];
   }
 
   /**
@@ -76,9 +74,24 @@ class Sala {
   checkPalavra(palavra, usuario) {
     if (this.palavra.toLowerCase() === palavra.toLowerCase()
       && !this.usuariosQueAcertaram.find(u => u.id === usuario.id)) {
-      usuario.pontuacao += 10;
+      usuario.pontuacao += 10 - this.usuariosQueAcertaram.length;
       this.usuarioAtual.pontuacao += 5;
       this.usuariosQueAcertaram.push(usuario);
+      return true;
+    }
+  }
+
+  newRound() {
+    if (this.rodadas === this.usuarios.length) {
+      return false;
+    } else {
+      this.palavra = sortearPalavra();
+      const usuario = this.usuarios.shift();
+      this.usuarioAtual = this.usuarios[0];
+      this.usuarios.push(usuario);
+      this.usuariosQueAcertaram = [];
+      this.rodadas++;
+      this.desenho = null;
       return true;
     }
   }
