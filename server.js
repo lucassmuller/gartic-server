@@ -7,6 +7,8 @@ const Usuario = require('./usuario');
 
 server.listen(process.env.PORT || 8080, () => console.log('server started'));
 
+app.get('/', (req, res) => res.send('olá'));
+
 const sala = new Sala(1, 'Sem tempo irmão');
 
 io.on('connection', (socket) => {
