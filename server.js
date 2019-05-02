@@ -5,7 +5,7 @@ const io      = require('socket.io')(server);
 const Sala    = require('./sala');
 const Usuario = require('./usuario');
 
-server.listen(8080, () => console.log('server started'));
+server.listen(process.env.PORT || 8080, () => console.log('server started'));
 
 const sala = new Sala(1, 'Sem tempo irmão');
 
