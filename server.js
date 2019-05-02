@@ -23,7 +23,8 @@ io.on('connection', (socket) => {
     
     console.log(usuario.nome, 'connected!');
     socket.emit('user:connected', usuario);
-    io.sockets.emit('room:users', sala.usuarios);
+    socket.emit('room:users', sala.usuarios);
+    sala.usuarios.forEach(u => socket.to(u.id).emit('room:users', sala.usuarios));
 
     const getDraw = () => ({
       draw: sala.desenho,
@@ -38,7 +39,7 @@ io.on('connection', (socket) => {
     socket.on('draw', ({ drawUpdate }) => {
       sala.setDesenho(drawUpdate, usuario);
   
-      socket.broadcast.emit('draw', getDraw());
+      sala.usuarios.forEach(u => socket.to(u.id).emit('draw', getDraw()));
     });
 
     socket.on('draw:opinion', ({ opinion }) => {
@@ -52,14 +53,16 @@ io.on('connection', (socket) => {
             if (usuario.id === sala.usuarioAtual.id)
               socket.emit('draw:word', {palavra: sala.palavra});
             else
-              socket.broadcast.to(sala.usuarioAtual.id).emit('draw:word', {palavra: sala.palavra});
+              socket.to(sala.usuarioAtual.id).emit('draw:word', {palavra: sala.palavra});
           } else {
-            io.sockets.emit('room:end', sala.usuarios);
+            socket.emit('room:end', sala.usuarios);
+            sala.usuarios.forEach(u => socket.to(u.id).emit('room:end', sala.usuarios));
+            sala.reset();
           }
         }
 
         socket.emit('room:users', sala.usuarios);
-        socket.broadcast.emit('room:users', sala.usuarios);
+        sala.usuarios.forEach(u => socket.to(u.id).emit('room:users', sala.usuarios));
       }
     });
   
@@ -67,11 +70,11 @@ io.on('connection', (socket) => {
       console.log(usuario.nome, 'disconnected!');
 
       sala.desconectarUsuario(usuario, () => {
-        socket.broadcast.emit('draw', getDraw());
-        socket.broadcast.to(sala.usuarioAtual.id).emit('draw:word', {palavra: sala.palavra});
+        sala.usuarios.forEach(u => socket.to(u.id).emit('draw', getDraw()));
+        socket.to(sala.usuarioAtual.id).emit('draw:word', {palavra: sala.palavra});
       });
       
-      socket.broadcast.emit('room:users', sala.usuarios);
+      sala.usuarios.forEach(u => socket.to(u.id).emit('room:users', sala.usuarios));
     });
   });
 });

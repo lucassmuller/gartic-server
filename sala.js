@@ -35,7 +35,7 @@ class Sala {
    */
   conectarUsuario(usuario) {
     // limite de 8 usuários
-    if (this.usuarios.length === 8 && this.rodadas === this.usuarios.length)
+    if (this.usuarios.length === 8)
       return false;
     
     if (this.usuarios.length === 0)
@@ -52,7 +52,7 @@ class Sala {
   desconectarUsuario(usuario, onUsuarioAtualChange) {
     this.usuarios = this.usuarios.filter(u => u.id !== usuario.id);
 
-    if (this.usuarioAtual.id === usuario.id) {
+    if (this.usuarioAtual && this.usuarioAtual.id === usuario.id) {
       this.newRound();
       this.usuarioAtual && onUsuarioAtualChange(this.usuarioAtual);
     }
@@ -79,6 +79,14 @@ class Sala {
       this.usuariosQueAcertaram.push(usuario);
       return true;
     }
+  }
+
+  reset() {
+    this.palavra = '';
+    this.desenho = null;
+    this.usuarios = [];
+    this.usuarioAtual = null;
+    this.usuariosQueAcertaram = [];
   }
 
   newRound() {
